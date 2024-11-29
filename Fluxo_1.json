@@ -1,0 +1,136 @@
+{
+  "name": "Fluxo 1",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "leads",
+        "fields": "first_name,last_name,phone,cpf,age,released_value,created_at",
+        "options": {}
+      },
+      "id": "f8270f2c-df87-4403-b58a-d2f9450c176c",
+      "name": "MongoDB",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        360
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "c9RbqwwMqTFxDD4K",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "b954a2f1-b940-4419-862f-1344c5c7a41f",
+      "name": "Start the Test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        780,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  let age = null;\n  if (item.json && item.json.birthdate && typeof item.json.birthdate === \"string\") {\n    try {\n      const [day, month, year] = item.json.birthdate.split('/');\n      const birthDate = new Date(`${year}-${month}-${day}`);\n      if (!isNaN(birthDate) && birthDate <= new Date()) {\n        age = Math.abs(new Date().getUTCFullYear() - birthDate.getUTCFullYear());\n      }\n    } catch (error) {\n      console.log(\"Erro ao processar birthdate:\", error);\n    }\n  }\n\n  let firstName = \"N/A\";\n  let lastName = \"N/A\";\n  if (item.json && item.json.name && typeof item.json.name === \"string\") {\n    const nameParts = item.json.name.trim().split(/\\s+/);\n    firstName = nameParts[0] || \"N/A\";\n    lastName = nameParts.slice(1).join(' ') || \"N/A\";\n  }\n\n  let cpf = \"00000000000\";\n  if (item.json && item.json.cpf && /^[0-9]{11}$/.test(item.json.cpf)) {\n    cpf = item.json.cpf;\n  } else if (item.json && item.json.cpf) {\n    cpf = item.json.cpf.replace(/\\D/g, '').padStart(11, '0');\n  }\n\n  let releasedValue = 0.0;\n  if (item.json && item.json.released_value !== undefined && !isNaN(item.json.released_value)) {\n  \n    releasedValue = parseFloat(item.json.released_value);\n  \n    if (Number.isInteger(releasedValue)) {\n      releasedValue = releasedValue + 0.0; \n    }\n\n    releasedValue = Math.round(releasedValue * 100) / 100;\n}\n\n  // Objeto formatado para o MongoDB\n  return {\n    json: {\n      first_name: firstName,\n      last_name: lastName,\n      phone: formatPhone(item.json.phone || \"\"),\n      cpf: cpf,\n      age: age !== null ? parseInt(age, 10) : 0,\n      released_value: releasedValue,\n      created_at: new Date(),\n    },\n  };\n});\n\n// Função para formatar o telefone\nfunction formatPhone(phone) {\n  phone = phone.replace(/\\D/g, '');\n  if (!phone.startsWith('55')) phone = '55' + phone;\n  if (phone.length === 12 && phone[4] !== '9') {\n    phone = phone.slice(0, 4) + '9' + phone.slice(4);\n  }\n  return phone;\n}"
+      },
+      "id": "707cbef6-26d2-414b-bd6d-730f6caa7c99",
+      "name": "Formatting",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "fileSelector": "/home/city/Documentos/testekonsi/base_de_dados_prosel_dev_junior.csv",
+        "options": {}
+      },
+      "id": "af539b1f-2e68-4ff8-beb1-f1056c62ddbd",
+      "name": "File_csv_base",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d4cdbae0-ee84-40d0-bc8c-182516caba98",
+      "name": "Convert_to_JSON",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        360
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start the Test": {
+      "main": [
+        [
+          {
+            "node": "File_csv_base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatting": {
+      "main": [
+        [
+          {
+            "node": "MongoDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File_csv_base": {
+      "main": [
+        [
+          {
+            "node": "Convert_to_JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert_to_JSON": {
+      "main": [
+        [
+          {
+            "node": "Formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0ef6fee9-648c-421d-8874-de70cb6fc8cc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3576626ca82587b51eb4d114f5743e43eb783c2b9d2ca8f49136a0e3b5dd4b05"
+  },
+  "id": "5XsU87biWSoz76Cl",
+  "tags": []
+}
