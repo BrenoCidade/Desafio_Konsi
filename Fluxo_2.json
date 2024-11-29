@@ -1,0 +1,191 @@
+{
+  "name": "Fluxo 2",
+  "nodes": [
+    {
+      "parameters": {
+        "collection": "leads",
+        "options": {},
+        "query": "={\n  \"phone\": \"{{ $json.body.phone }}\"\n}"
+      },
+      "id": "ae7b1276-8367-43df-870a-a49bb527c292",
+      "name": "MongoDB",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        340
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": false,
+      "retryOnFail": false,
+      "credentials": {
+        "mongoDb": {
+          "id": "c9RbqwwMqTFxDD4K",
+          "name": "MongoDB account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "0e39e17c-b82a-4e54-b1e7-a7f2cc3b926b",
+      "name": "Reponse_True",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n   \"message\": \"Nenhum lead foi encontrado.\"\n}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "673f69e6-742d-43de-a0a7-b70b3c423867",
+      "name": "Response_False",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1000,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1a601a8e-33f2-45c4-b995-f46bd0bb26fe",
+              "leftValue": "={{ $json.phone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b3554c9a-afdd-4755-862e-9404348961e4",
+      "name": "Validation_True_False",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  let formattedPhone = null; \n  if (item.json.phone) {\n    formattedPhone = formatPhone(item.json.phone); \n  }\n\n  return {\n    json: {\n      ...item.json,\n      phone: formattedPhone, \n    },\n  };\n});\n\nfunction formatPhone(phone) {\n  phone = phone.replace(/\\D/g, ''); \n  if (!phone.startsWith('55')) phone = '55' + phone; \n  if (phone.length === 12 && phone[4] !== '9') {\n    phone = phone.slice(0, 4) + '9' + phone.slice(4); \n  }\n  return phone;\n}"
+      },
+      "id": "2da7f39e-fc0d-46d1-90db-5c5aeec58cfc",
+      "name": "Formatting",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/consulta-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "364d5f17-6f19-4b81-bd40-a9805139f55c",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        340
+      ],
+      "webhookId": "8cc66f28-a5ae-4d80-979c-dd30613e6340"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "MongoDB": {
+      "main": [
+        [
+          {
+            "node": "Formatting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validation_True_False": {
+      "main": [
+        [
+          {
+            "node": "Reponse_True",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response_False",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatting": {
+      "main": [
+        [
+          {
+            "node": "Validation_True_False",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "MongoDB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7e7598e3-5ba2-4b11-beb6-d672d1b91581",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3576626ca82587b51eb4d114f5743e43eb783c2b9d2ca8f49136a0e3b5dd4b05"
+  },
+  "id": "eK2hEtLz0oxms5JI",
+  "tags": []
+}
